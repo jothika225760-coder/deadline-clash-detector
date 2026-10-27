@@ -47,15 +47,18 @@ function App() {
   const handleClearAll = async () => {
     if (!window.confirm('Are you sure you want to clear all tasks?')) return;
 
-    const currentTasks = [...tasks];
+    try {
+      // 1. Try bulk delete endpoint on backend
+      await axios.delete(API_URL);
+    } catch (err) {
+      // 2. Fallback: delete tasks individually if bulk route is unavailable
+      await Promise.allSettled(
+        tasks.map((task) => axios.delete(`${API_URL}/${task._id}`))
+      );
+    }
+
+    // Reset local state and reload clean state from DB
     setTasks([]);
-
-    // Delete tasks individually from backend database
-    await Promise.allSettled(
-      currentTasks.map((task) => axios.delete(`${API_URL}/${task._id}`))
-    );
-
-    // Refresh state from database to ensure clean slate for adding new tasks
     await fetchTasks();
   };
 
