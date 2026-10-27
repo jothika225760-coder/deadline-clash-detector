@@ -44,34 +44,74 @@ function App() {
     }
   };
 
+  // Helper function to detect duplicate dates
+  const getClashingDates = () => {
+    const dateCounts = {};
+    tasks.forEach((task) => {
+      const formattedDate = new Date(task.dueDate).toISOString().split('T')[0];
+      dateCounts[formattedDate] = (dateCounts[formattedDate] || 0) + 1;
+    });
+    return Object.keys(dateCounts).filter((date) => dateCounts[date] > 1);
+  };
+
+  const clashingDates = getClashingDates();
+
   return (
-    <div style={{ padding: '20px', textAlign: 'center' }}>
+    <div style={{ padding: '20px', textAlign: 'center', fontFamily: 'sans-serif' }}>
       <h1>Deadline Clash Detector</h1>
-      
+
       <form onSubmit={handleSubmit} style={{ marginBottom: '20px' }}>
-        <input 
-          type="text" 
-          placeholder="Task title" 
-          value={title} 
-          onChange={(e) => setTitle(e.target.value)} 
+        <input
+          type="text"
+          placeholder="Task title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
           style={{ marginRight: '10px', padding: '5px' }}
         />
-        <input 
-          type="date" 
-          value={dueDate} 
-          onChange={(e) => setDueDate(e.target.value)} 
+        <input
+          type="date"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
           style={{ marginRight: '10px', padding: '5px' }}
         />
         <button type="submit" style={{ padding: '5px 10px' }}>Add Task</button>
       </form>
 
+      {/* Warning banner for clashes */}
+      {clashingDates.length > 0 && (
+        <div style={{
+          backgroundColor: '#ffebe9',
+          color: '#d9381e',
+          border: '1px solid #ffc0cb',
+          padding: '10px',
+          margin: '0 auto 20px auto',
+          maxWidth: '400px',
+          borderRadius: '5px'
+        }}>
+          ⚠️ <strong>Deadline Clash Detected!</strong> You have multiple tasks due on the same date.
+        </div>
+      )}
+
       <h2>Task List</h2>
       <ul style={{ listStyle: 'none', padding: 0 }}>
-        {tasks.map((task) => (
-          <li key={task._id} style={{ marginBottom: '8px' }}>
-            <strong>{task.title}</strong> — {new Date(task.dueDate).toLocaleDateString()}
-          </li>
-        ))}
+        {tasks.map((task) => {
+          const formattedTaskDate = new Date(task.dueDate).toISOString().split('T')[0];
+          const isClashing = clashingDates.includes(formattedTaskDate);
+
+          return (
+            <li
+              key={task._id}
+              style={{
+                marginBottom: '8px',
+                color: isClashing ? '#d9381e' : 'inherit',
+                fontWeight: isClashing ? 'bold' : 'normal'
+              }}
+            >
+              {task.title} — {new Date(task.dueDate).toLocaleDateString()}
+              {isClashing && <span style={{ marginLeft: '8px', fontSize: '0.9em' }}>(Clash!)</span>}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
