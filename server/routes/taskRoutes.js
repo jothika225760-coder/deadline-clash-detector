@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Task = require('../models/Task'); // Path to your Mongoose Task model
+const Task = require('../models/Task');
 
 // GET all tasks
 router.get('/tasks', async (req, res) => {
@@ -36,16 +36,6 @@ router.delete('/tasks/:id', async (req, res) => {
   try {
     await Task.findByIdAndDelete(req.params.id);
     res.json({ message: 'Task deleted' });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// DELETE all tasks permanently from MongoDB
-router.delete('/tasks', async (req, res) => {
-  try {
-    await Task.deleteMany({});
-    res.status(200).json({ message: 'All tasks deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
