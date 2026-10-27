@@ -38,28 +38,27 @@ function App() {
       await axios.post(API_URL, payload);
       setTitle('');
       setDueDate('');
-      fetchTasks();
+      await fetchTasks();
     } catch (err) {
       console.error('Submission failed details:', err.response?.data || err.message);
     }
   };
 
-  // Function to delete all tasks
   const handleClearAll = async () => {
     if (!window.confirm('Are you sure you want to clear all tasks?')) return;
 
-    try {
-      // Delete each task one by one from the database
-      await Promise.all(tasks.map(task => axios.delete(`${API_URL}/${task._id}`)));
-      setTasks([]);
-    } catch (err) {
-      console.error('Error clearing tasks:', err);
-      // Fallback: refresh list from server
-      fetchTasks();
-    }
+    const currentTasks = [...tasks];
+    setTasks([]);
+
+    // Delete tasks individually from backend database
+    await Promise.allSettled(
+      currentTasks.map((task) => axios.delete(`${API_URL}/${task._id}`))
+    );
+
+    // Refresh state from database to ensure clean slate for adding new tasks
+    await fetchTasks();
   };
 
-  // Helper function to detect duplicate dates
   const getClashingDates = () => {
     const dateCounts = {};
     tasks.forEach((task) => {
