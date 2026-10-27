@@ -11,7 +11,9 @@ function App() {
   const fetchTasks = async () => {
     try {
       const response = await axios.get(API_URL);
-      setTasks(response.data);
+      if (Array.isArray(response.data)) {
+        setTasks(response.data);
+      }
     } catch (err) {
       console.error('Error fetching tasks:', err);
     }
@@ -23,11 +25,14 @@ function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title || !dueDate) return;
+    if (!title.trim() || !dueDate) return;
+
+    // Convert date string safely to standard ISO string format
+    const isoDueDate = new Date(dueDate).toISOString();
 
     const payload = {
       title: title.trim(),
-      dueDate: dueDate,
+      dueDate: isoDueDate,
       courseOrCategory: 'General',
       estimatedHours: 1,
       priority: 'High',
@@ -44,7 +49,7 @@ function App() {
     }
   };
 
-  // Safe helper to extract YYYY-MM-DD format
+  // Safe helper to extract YYYY-MM-DD format from any date value
   const formatDateString = (dateVal) => {
     if (!dateVal) return '';
     const dateObj = new Date(dateVal);
@@ -52,7 +57,7 @@ function App() {
     return dateObj.toISOString().split('T')[0];
   };
 
-  // Helper function to detect duplicate dates safely
+  // Helper function to detect duplicate due dates safely
   const getClashingDates = () => {
     const dateCounts = {};
     tasks.forEach((task) => {
@@ -67,7 +72,7 @@ function App() {
   const clashingDates = getClashingDates();
 
   return (
-    <div style={{ padding: '20px', textAlign: 'center', fontFamily: 'sans-serif' }}>
+    <div style={{ padding: '20px', textAlign: 'center', fontFamily: 'sans-serif', maxWidth: '600px', margin: '0 auto' }}>
       <h1>Deadline Clash Detector</h1>
 
       <form onSubmit={handleSubmit} style={{ marginBottom: '20px' }}>
@@ -76,15 +81,19 @@ function App() {
           placeholder="Task title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          style={{ marginRight: '10px', padding: '5px' }}
+          required
+          style={{ marginRight: '10px', padding: '6px' }}
         />
         <input
           type="date"
           value={dueDate}
           onChange={(e) => setDueDate(e.target.value)}
-          style={{ marginRight: '10px', padding: '5px' }}
+          required
+          style={{ marginRight: '10px', padding: '6px' }}
         />
-        <button type="submit" style={{ padding: '5px 10px' }}>Add Task</button>
+        <button type="submit" style={{ padding: '6px 12px', cursor: 'pointer' }}>
+          Add Task
+        </button>
       </form>
 
       {/* Warning banner for clashes */}
@@ -93,9 +102,8 @@ function App() {
           backgroundColor: '#ffebe9',
           color: '#d9381e',
           border: '1px solid #ffc0cb',
-          padding: '10px',
-          margin: '0 auto 20px auto',
-          maxWidth: '400px',
+          padding: '12px',
+          marginBottom: '20px',
           borderRadius: '5px'
         }}>
           ⚠️ <strong>Deadline Clash Detected!</strong> You have multiple tasks due on the same date.
@@ -103,26 +111,35 @@ function App() {
       )}
 
       <h2>Task List</h2>
-      <ul style={{ listStyle: 'none', padding: 0 }}>
-        {tasks.map((task) => {
-          const formattedTaskDate = formatDateString(task.dueDate);
-          const isClashing = clashingDates.includes(formattedTaskDate);
+      {tasks.length === 0 ? (
+        <p style={{ color: '#666' }}>No tasks added yet.</p>
+      ) : (
+        <ul style={{ listStyle: 'none', padding: 0 }}>
+          {tasks.map((task) => {
+            const formattedTaskDate = formatDateString(task.dueDate);
+            const isClashing = clashingDates.includes(formattedTaskDate);
+            const displayDate = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No date';
 
-          return (
-            <li
-              key={task._id}
-              style={{
-                marginBottom: '8px',
-                color: isClashing ? '#d9381e' : 'inherit',
-                fontWeight: isClashing ? 'bold' : 'normal'
-              }}
-            >
-              {task.title} — {new Date(task.dueDate).toLocaleDateString()}
-              {isClashing && <span style={{ marginLeft: '8px', fontSize: '0.9em' }}>(Clash!)</span>}
-            </li>
-          );
-        })}
-      </ul>
+            return (
+              <li
+                key={task._id || Math.random()}
+                style={{
+                  marginBottom: '10px',
+                  padding: '8px',
+                  backgroundColor: isClashing ? '#fff0f0' : '#f9f9f9',
+                  border: isClashing ? '1px solid #d9381e' : '1px solid #ddd',
+                  borderRadius: '4px',
+                  color: isClashing ? '#d9381e' : '#333',
+                  fontWeight: isClashing ? 'bold' : 'normal'
+                }}
+              >
+                {task.title} — {displayDate}
+                {isClashing && <span style={{ marginLeft: '8px', fontSize: '0.9em' }}>(Clash!)</span>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }
