@@ -4,17 +4,27 @@ const handleSubmit = async (e) => {
 
   try {
     await axios.post(API_URL, { 
-      title, 
-      dueDate,
-      courseOrCategory: 'General',
+      // Common title/name variations
+      title: title,
+      name: title,
+      taskName: title,
+
+      // Common date variations
+      dueDate: dueDate,
+      date: dueDate,
+      deadline: dueDate,
+
+      // Additional schema fields seen in your Atlas DB
+      courseOrCategory: "General",
       estimatedHours: 1,
-      priority: 'High',
-      status: 'Pending'
+      priority: "High",
+      status: "Pending"
     });
+
     setTitle('');
     setDueDate('');
     fetchTasks();
   } catch (err) {
-    console.error('Error adding task:', err);
+    console.error('Error adding task:', err.response?.data || err.message);
   }
 };
