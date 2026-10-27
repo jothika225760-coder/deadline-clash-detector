@@ -44,6 +44,21 @@ function App() {
     }
   };
 
+  // Function to delete all tasks
+  const handleClearAll = async () => {
+    if (!window.confirm('Are you sure you want to clear all tasks?')) return;
+
+    try {
+      // Delete each task one by one from the database
+      await Promise.all(tasks.map(task => axios.delete(`${API_URL}/${task._id}`)));
+      setTasks([]);
+    } catch (err) {
+      console.error('Error clearing tasks:', err);
+      // Fallback: refresh list from server
+      fetchTasks();
+    }
+  };
+
   // Helper function to detect duplicate dates
   const getClashingDates = () => {
     const dateCounts = {};
@@ -74,7 +89,26 @@ function App() {
           onChange={(e) => setDueDate(e.target.value)}
           style={{ marginRight: '10px', padding: '5px' }}
         />
-        <button type="submit" style={{ padding: '5px 10px' }}>Add Task</button>
+        <button type="submit" style={{ padding: '5px 10px', marginRight: '10px' }}>
+          Add Task
+        </button>
+
+        {tasks.length > 0 && (
+          <button
+            type="button"
+            onClick={handleClearAll}
+            style={{
+              padding: '5px 10px',
+              backgroundColor: '#dc3545',
+              color: 'white',
+              border: 'none',
+              borderRadius: '3px',
+              cursor: 'pointer'
+            }}
+          >
+            Clear All
+          </button>
+        )}
       </form>
 
       {/* Warning banner for clashes */}
@@ -93,26 +127,30 @@ function App() {
       )}
 
       <h2>Task List</h2>
-      <ul style={{ listStyle: 'none', padding: 0 }}>
-        {tasks.map((task) => {
-          const formattedTaskDate = new Date(task.dueDate).toISOString().split('T')[0];
-          const isClashing = clashingDates.includes(formattedTaskDate);
+      {tasks.length === 0 ? (
+        <p style={{ color: '#666' }}>No tasks added yet.</p>
+      ) : (
+        <ul style={{ listStyle: 'none', padding: 0 }}>
+          {tasks.map((task) => {
+            const formattedTaskDate = new Date(task.dueDate).toISOString().split('T')[0];
+            const isClashing = clashingDates.includes(formattedTaskDate);
 
-          return (
-            <li
-              key={task._id}
-              style={{
-                marginBottom: '8px',
-                color: isClashing ? '#d9381e' : 'inherit',
-                fontWeight: isClashing ? 'bold' : 'normal'
-              }}
-            >
-              {task.title} — {new Date(task.dueDate).toLocaleDateString()}
-              {isClashing && <span style={{ marginLeft: '8px', fontSize: '0.9em' }}>(Clash!)</span>}
-            </li>
-          );
-        })}
-      </ul>
+            return (
+              <li
+                key={task._id}
+                style={{
+                  marginBottom: '8px',
+                  color: isClashing ? '#d9381e' : 'inherit',
+                  fontWeight: isClashing ? 'bold' : 'normal'
+                }}
+              >
+                {task.title} — {new Date(task.dueDate).toLocaleDateString()}
+                {isClashing && <span style={{ marginLeft: '8px', fontSize: '0.9em' }}>(Clash!)</span>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }
