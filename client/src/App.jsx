@@ -7,6 +7,7 @@ function App() {
   const [tasks, setTasks] = useState([]);
   const [title, setTitle] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const fetchTasks = async () => {
     try {
@@ -25,11 +26,16 @@ function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title || !dueDate) return;
+    if (!title.trim() || !dueDate) return;
+
+    setLoading(true);
+
+    // Convert date string safely to standard ISO format for backend compatibility
+    const formattedDueDate = new Date(dueDate).toISOString();
 
     const payload = {
       title: title.trim(),
-      dueDate: dueDate,
+      dueDate: formattedDueDate,
       courseOrCategory: 'General',
       estimatedHours: 1,
       priority: 'High',
@@ -42,12 +48,31 @@ function App() {
       setDueDate('');
       await fetchTasks();
     } catch (err) {
-      console.error('Submission failed details:', err.response?.data || err.message);
-      alert('Error adding task: ' + JSON.stringify(err.response?.data || err.message));
+      console.error('Submission failed:', err.response?.data || err.message);
+      alert('Failed to add task: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Safe helper function to parse date strings
+  const handleClearAll = async () => {
+    if (!window.confirm('Are you sure you want to clear all tasks?')) return;
+
+    try {
+      await axios.delete(API_URL);
+    } catch (err) {
+      console.error('Clear all failed:', err);
+      // Fallback: delete tasks individually if bulk endpoint fails
+      await Promise.allSettled(
+        tasks.map((task) => axios.delete(`${API_URL}/${task._id}`))
+      );
+    }
+
+    setTasks([]);
+    await fetchTasks();
+  };
+
+  // Safe helper function to parse date strings for UI comparison
   const formatDateString = (dateVal) => {
     if (!dateVal) return '';
     const dateObj = new Date(dateVal);
@@ -70,7 +95,7 @@ function App() {
   const clashingDates = getClashingDates();
 
   return (
-    <div style={{ padding: '20px', textAlign: 'center', fontFamily: 'sans-serif' }}>
+    <div style={{ padding: '20px', textAlign: 'center', fontFamily: 'sans-serif', maxWidth: '600px', margin: '0 auto' }}>
       <h1>Deadline Clash Detector</h1>
 
       <form onSubmit={handleSubmit} style={{ marginBottom: '20px' }}>
@@ -79,15 +104,36 @@ function App() {
           placeholder="Task title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          style={{ marginRight: '10px', padding: '5px' }}
+          required
+          style={{ marginRight: '10px', padding: '6px' }}
         />
         <input
           type="date"
           value={dueDate}
           onChange={(e) => setDueDate(e.target.value)}
-          style={{ marginRight: '10px', padding: '5px' }}
+          required
+          style={{ marginRight: '10px', padding: '6px' }}
         />
-        <button type="submit" style={{ padding: '5px 10px' }}>Add Task</button>
+        <button type="submit" disabled={loading} style={{ padding: '6px 12px', cursor: 'pointer', marginRight: '10px' }}>
+          {loading ? 'Adding...' : 'Add Task'}
+        </button>
+
+        {tasks.length > 0 && (
+          <button
+            type="button"
+            onClick={handleClearAll}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: '#dc3545',
+              color: 'white',
+              border: 'none',
+              borderRadius: '3px',
+              cursor: 'pointer'
+            }}
+          >
+            Clear All
+          </button>
+        )}
       </form>
 
       {/* Warning banner for clashes */}
@@ -96,9 +142,8 @@ function App() {
           backgroundColor: '#ffebe9',
           color: '#d9381e',
           border: '1px solid #ffc0cb',
-          padding: '10px',
-          margin: '0 auto 20px auto',
-          maxWidth: '400px',
+          padding: '12px',
+          marginBottom: '20px',
           borderRadius: '5px'
         }}>
           ⚠️ <strong>Deadline Clash Detected!</strong> You have multiple tasks due on the same date.
@@ -106,26 +151,35 @@ function App() {
       )}
 
       <h2>Task List</h2>
-      <ul style={{ listStyle: 'none', padding: 0 }}>
-        {tasks.map((task) => {
-          const formattedTaskDate = formatDateString(task.dueDate);
-          const isClashing = clashingDates.includes(formattedTaskDate);
+      {tasks.length === 0 ? (
+        <p style={{ color: '#666' }}>No tasks added yet.</p>
+      ) : (
+        <ul style={{ listStyle: 'none', padding: 0 }}>
+          {tasks.map((task) => {
+            const formattedTaskDate = formatDateString(task.dueDate);
+            const isClashing = clashingDates.includes(formattedTaskDate);
+            const displayDate = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No date';
 
-          return (
-            <li
-              key={task._id || Math.random()}
-              style={{
-                marginBottom: '8px',
-                color: isClashing ? '#d9381e' : 'inherit',
-                fontWeight: isClashing ? 'bold' : 'normal'
-              }}
-            >
-              {task.title} — {new Date(task.dueDate).toLocaleDateString()}
-              {isClashing && <span style={{ marginLeft: '8px', fontSize: '0.9em' }}>(Clash!)</span>}
-            </li>
-          );
-        })}
-      </ul>
+            return (
+              <li
+                key={task._id || Math.random()}
+                style={{
+                  marginBottom: '10px',
+                  padding: '8px',
+                  backgroundColor: isClashing ? '#fff0f0' : '#f9f9f9',
+                  border: isClashing ? '1px solid #d9381e' : '1px solid #ddd',
+                  borderRadius: '4px',
+                  color: isClashing ? '#d9381e' : '#333',
+                  fontWeight: isClashing ? 'bold' : 'normal'
+                }}
+              >
+                {task.title} — {displayDate}
+                {isClashing && <span style={{ marginLeft: '8px', fontSize: '0.9em' }}>(Clash!)</span>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }
