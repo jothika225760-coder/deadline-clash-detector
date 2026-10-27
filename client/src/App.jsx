@@ -44,12 +44,22 @@ function App() {
     }
   };
 
-  // Helper function to detect duplicate dates
+  // Safe helper to extract YYYY-MM-DD format
+  const formatDateString = (dateVal) => {
+    if (!dateVal) return '';
+    const dateObj = new Date(dateVal);
+    if (isNaN(dateObj.getTime())) return '';
+    return dateObj.toISOString().split('T')[0];
+  };
+
+  // Helper function to detect duplicate dates safely
   const getClashingDates = () => {
     const dateCounts = {};
     tasks.forEach((task) => {
-      const formattedDate = new Date(task.dueDate).toISOString().split('T')[0];
-      dateCounts[formattedDate] = (dateCounts[formattedDate] || 0) + 1;
+      const formattedDate = formatDateString(task.dueDate);
+      if (formattedDate) {
+        dateCounts[formattedDate] = (dateCounts[formattedDate] || 0) + 1;
+      }
     });
     return Object.keys(dateCounts).filter((date) => dateCounts[date] > 1);
   };
@@ -95,7 +105,7 @@ function App() {
       <h2>Task List</h2>
       <ul style={{ listStyle: 'none', padding: 0 }}>
         {tasks.map((task) => {
-          const formattedTaskDate = new Date(task.dueDate).toISOString().split('T')[0];
+          const formattedTaskDate = formatDateString(task.dueDate);
           const isClashing = clashingDates.includes(formattedTaskDate);
 
           return (
