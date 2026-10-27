@@ -3,28 +3,20 @@ const handleSubmit = async (e) => {
   if (!title || !dueDate) return;
 
   try {
-    await axios.post(API_URL, { 
-      // Common title/name variations
-      title: title,
-      name: title,
-      taskName: title,
-
-      // Common date variations
-      dueDate: dueDate,
-      date: dueDate,
-      deadline: dueDate,
-
-      // Additional schema fields seen in your Atlas DB
-      courseOrCategory: "General",
-      estimatedHours: 1,
-      priority: "High",
-      status: "Pending"
+    await axios.post('https://deadline-clash-detector-api.onrender.com/api/tasks', {
+      title: String(title).trim(),
+      dueDate: new Date(dueDate).toISOString(),
+      courseOrCategory: 'General',
+      estimatedHours: Number(1),
+      priority: 'High',
+      status: 'Pending'
     });
 
     setTitle('');
     setDueDate('');
     fetchTasks();
   } catch (err) {
-    console.error('Error adding task:', err.response?.data || err.message);
+    // This prints the exact Mongoose error field in your browser console if it fails
+    console.error('Validation Error Details:', err.response?.data);
   }
 };
