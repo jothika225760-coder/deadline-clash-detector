@@ -38,30 +38,13 @@ function App() {
       await axios.post(API_URL, payload);
       setTitle('');
       setDueDate('');
-      await fetchTasks();
+      fetchTasks();
     } catch (err) {
       console.error('Submission failed details:', err.response?.data || err.message);
     }
   };
 
-  const handleClearAll = async () => {
-    if (!window.confirm('Are you sure you want to clear all tasks?')) return;
-
-    try {
-      // 1. Try bulk delete endpoint on backend
-      await axios.delete(API_URL);
-    } catch (err) {
-      // 2. Fallback: delete tasks individually if bulk route is unavailable
-      await Promise.allSettled(
-        tasks.map((task) => axios.delete(`${API_URL}/${task._id}`))
-      );
-    }
-
-    // Reset local state and reload clean state from DB
-    setTasks([]);
-    await fetchTasks();
-  };
-
+  // Helper function to detect duplicate dates
   const getClashingDates = () => {
     const dateCounts = {};
     tasks.forEach((task) => {
@@ -91,26 +74,7 @@ function App() {
           onChange={(e) => setDueDate(e.target.value)}
           style={{ marginRight: '10px', padding: '5px' }}
         />
-        <button type="submit" style={{ padding: '5px 10px', marginRight: '10px' }}>
-          Add Task
-        </button>
-
-        {tasks.length > 0 && (
-          <button
-            type="button"
-            onClick={handleClearAll}
-            style={{
-              padding: '5px 10px',
-              backgroundColor: '#dc3545',
-              color: 'white',
-              border: 'none',
-              borderRadius: '3px',
-              cursor: 'pointer'
-            }}
-          >
-            Clear All
-          </button>
-        )}
+        <button type="submit" style={{ padding: '5px 10px' }}>Add Task</button>
       </form>
 
       {/* Warning banner for clashes */}
@@ -129,30 +93,26 @@ function App() {
       )}
 
       <h2>Task List</h2>
-      {tasks.length === 0 ? (
-        <p style={{ color: '#666' }}>No tasks added yet.</p>
-      ) : (
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          {tasks.map((task) => {
-            const formattedTaskDate = new Date(task.dueDate).toISOString().split('T')[0];
-            const isClashing = clashingDates.includes(formattedTaskDate);
+      <ul style={{ listStyle: 'none', padding: 0 }}>
+        {tasks.map((task) => {
+          const formattedTaskDate = new Date(task.dueDate).toISOString().split('T')[0];
+          const isClashing = clashingDates.includes(formattedTaskDate);
 
-            return (
-              <li
-                key={task._id}
-                style={{
-                  marginBottom: '8px',
-                  color: isClashing ? '#d9381e' : 'inherit',
-                  fontWeight: isClashing ? 'bold' : 'normal'
-                }}
-              >
-                {task.title} — {new Date(task.dueDate).toLocaleDateString()}
-                {isClashing && <span style={{ marginLeft: '8px', fontSize: '0.9em' }}>(Clash!)</span>}
-              </li>
-            );
-          })}
-        </ul>
-      )}
+          return (
+            <li
+              key={task._id}
+              style={{
+                marginBottom: '8px',
+                color: isClashing ? '#d9381e' : 'inherit',
+                fontWeight: isClashing ? 'bold' : 'normal'
+              }}
+            >
+              {task.title} — {new Date(task.dueDate).toLocaleDateString()}
+              {isClashing && <span style={{ marginLeft: '8px', fontSize: '0.9em' }}>(Clash!)</span>}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
